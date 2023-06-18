@@ -113,8 +113,9 @@ def append_clear_countdown():
 def ChatGPT(query):
     chat_log.append ({"role": "user", "content": query})
     response = openai.ChatCompletion.create(
-    model=GPT_model,
-    messages=chat_log
+    model=GPT_model,         
+    messages=chat_log,
+    temperature=1.0 #adjust between 0-2; higher values make the response more random and 'creative'
     )
     return str.strip(response['choices'][0]['message']['content'])
     chat_log.append({"role": "system", "content": response})
