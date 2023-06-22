@@ -33,7 +33,7 @@ import RPi.GPIO as GPIO
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 led1_pin=18
-led2_pin=24
+led2_pin=23
 GPIO.setup(led1_pin, GPIO.OUT)
 GPIO.output(led1_pin, GPIO.LOW)
 GPIO.setup(led2_pin, GPIO.OUT)
@@ -359,45 +359,111 @@ try:
     count = 0
 
     while True:
+
+        try:
         
-        Chat = 1
-        if count == 0:
-            t_count = threading.Thread(target=append_clear_countdown)
-            t_count.start()
-        else:
-            pass   
-        count += 1
-        wake_word()
+            Chat = 1
+            if count == 0:
+                t_count = threading.Thread(target=append_clear_countdown)
+                t_count.start()
+            else:
+                pass   
+            count += 1
+            wake_word()
 # comment out the next line if you do not want DaVinci to verbally respond to his name        
-        voice(random.choice(prompt))
-        recorder = Recorder()
-        recorder.start()
-        listen()
-        detect_silence()
-        transcript, words = o.process(recorder.stop())
-        t_fade = threading.Thread(target=fade_leds, args=(event,))
-        t_fade.start()
-        recorder.stop()
-        print("You said: " + transcript)
-        draw_request(transcript)
-        clean_screen(transcript)
-        if Chat == 1:        
-            (res) = ChatGPT(transcript)
-            print("\nChatGPT's response is:\n")        
-            t1 = threading.Thread(target=voice, args=(res,))
-            t2 = threading.Thread(target=responseprinter, args=(res,))
+            voice(random.choice(prompt))
+            recorder = Recorder()
+            recorder.start()
+            listen()
+            detect_silence()
+            transcript, words = o.process(recorder.stop())
+            t_fade = threading.Thread(target=fade_leds, args=(event,))
+            t_fade.start()
+            recorder.stop()
+            print("You said: " + transcript)
+            draw_request(transcript)
+            clean_screen(transcript)
+            if Chat == 1:        
+                (res) = ChatGPT(transcript)
+                print("\nChatGPT's response is:\n")        
+                t1 = threading.Thread(target=voice, args=(res,))
+                t2 = threading.Thread(target=responseprinter, args=(res,))
+                t1.start()
+                t2.start()
+                t1.join()
+                t2.join()
+            event.set()
+            GPIO.output(led1_pin, GPIO.LOW)
+            GPIO.output(led2_pin, GPIO.LOW)        
+            recorder.stop()
+            o.delete
+            recorder = None
 
-            t1.start()
-            t2.start()
+        except openai.error.APIError as e:
+            print("\nThere was an API error.  Please try again in a few minutes.")
+            voice("\nThere was an A P I error.  Please try again in a few minutes.")
+            event.set()
+            GPIO.output(led1_pin, GPIO.LOW)
+            GPIO.output(led2_pin, GPIO.LOW)        
+            recorder.stop()
+            o.delete
+            recorder = None
+            sleep(1)
 
-            t1.join()
-            t2.join()
-        event.set()
-        GPIO.output(led1_pin, GPIO.LOW)
-        GPIO.output(led2_pin, GPIO.LOW)        
-        recorder.stop()
-        o.delete
-        recorder = None
+        except openai.error.Timeout as e:
+            print("\nYour request timed out.  Please try again in a few minutes.")
+            voice("\nYour request timed out.  Please try again in a few minutes.")
+            event.set()
+            GPIO.output(led1_pin, GPIO.LOW)
+            GPIO.output(led2_pin, GPIO.LOW)        
+            recorder.stop()
+            o.delete
+            recorder = None
+            sleep(1)
+
+        except openai.error.RateLimitError as e:
+            print("\nYou have hit your assigned rate limit.")
+            voice("\nYou have hit your assigned rate limit.")
+            event.set()
+            GPIO.output(led1_pin, GPIO.LOW)
+            GPIO.output(led2_pin, GPIO.LOW)        
+            recorder.stop()
+            o.delete
+            recorder = None
+            break
+
+        except openai.error.APIConnectionError as e:
+            print("\nI am having trouble connecting to the API.  Please check your network connection and then try again.")
+            voice("\nI am having trouble connecting to the A P I.  Please check your network connection and try again.")
+            event.set()
+            GPIO.output(led1_pin, GPIO.LOW)
+            GPIO.output(led2_pin, GPIO.LOW)        
+            recorder.stop()
+            o.delete
+            recorder = None
+            sleep(1)
+
+        except openai.error.AuthenticationError as e:
+            print("\nYour OpenAI API key or token is invalid, expired, or revoked.  Please fix this issue and then restart my program.")
+            voice("\nYour Open A I A P I key or token is invalid, expired, or revoked.  Please fix this issue and then restart my program.")
+            event.set()
+            GPIO.output(led1_pin, GPIO.LOW)
+            GPIO.output(led2_pin, GPIO.LOW)        
+            recorder.stop()
+            o.delete
+            recorder = None
+            break
+
+        except openai.error.ServiceUnavailableError as e:
+            print("\nThere is an issue with OpenAI’s servers.  Please try again later.")
+            voice("\nThere is an issue with Open A I’s servers.  Please try again later.")
+            event.set()
+            GPIO.output(led1_pin, GPIO.LOW)
+            GPIO.output(led2_pin, GPIO.LOW)        
+            recorder.stop()
+            o.delete
+            recorder = None
+            sleep(1)
         
 except KeyboardInterrupt:
     print("\nExiting ChatGPT Virtual Assistant")
