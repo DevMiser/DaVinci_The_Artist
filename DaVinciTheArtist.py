@@ -111,14 +111,17 @@ def append_clear_countdown():
     t_count.join
 
 def ChatGPT(query):
-    chat_log.append ({"role": "user", "content": query})
+    user_query=[
+        {"role": "user", "content": query},
+        ]
+    send_query = (chat_log + user_query)
     response = openai.ChatCompletion.create(
-    model=GPT_model,         
-    messages=chat_log,
-    temperature=1.0 #adjust between 0-2; higher values make the response more random and 'creative'
+    model=GPT_model,
+    messages=send_query
     )
+    answer = response.choices[0]['message']['content']
+    chat_log.append({"role": "assistant", "content": answer})
     return str.strip(response['choices'][0]['message']['content'])
-    chat_log.append({"role": "system", "content": response})
 
 def clean_screen(transcript):
     
