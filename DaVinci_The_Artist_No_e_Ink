@@ -156,7 +156,7 @@ def draw_request(transcript):
         if word in transcript:
             print("\'"f"{word}\' detected")
             voice(f"I heard the phrase {word}.  I'll create the requested image and display on the monitor in a few seconds.") 
-            prompt_full = (transcript.replace(word, "")              
+            prompt_full = (transcript.replace(word, ""))             
             print("You requested the following image: " + prompt_full)
             print("\nCreating image...\n")
             image_url = dall_e2(prompt_full)
