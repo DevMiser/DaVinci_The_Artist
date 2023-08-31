@@ -155,11 +155,14 @@ def draw_request(transcript):
     for word in Create_list:
         if word in transcript:
             print("\'"f"{word}\' detected")
-            voice(f"I heard the phrase {word}.  I'll create the requested image and display on the monitor.") 
-            prompt_full = (transcript.replace(word, "") + (" using vibrant colors"))                
+            voice(f"I heard the phrase {word}.  I'll create the requested image and display on the monitor in a few seconds.") 
+            prompt_full = (transcript.replace(word, "")              
             print("You requested the following image: " + prompt_full)
             print("\nCreating image...\n")
             image_url = dall_e2(prompt_full)
+            raw_data = urllib.request.urlopen(image_url).read()
+            img = Image.open(io.BytesIO(raw_data))
+            img.show()
 #            print(image_url) #uncomment this line if you want to print the generated image's URL
             Chat = 0
 
