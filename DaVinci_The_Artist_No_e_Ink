@@ -213,7 +213,10 @@ def listen():
             break
 
 def responseprinter(chat):
-    for word in chat:
+    wrapper = textwrap.TextWrapper(width=70)  # Adjust the width to your preference
+    paragraphs = res.split('\n')
+    wrapped_chat = "\n".join([wrapper.fill(p) for p in paragraphs])
+    for word in wrapped_chat:
        time.sleep(0.055)
        print(word, end="", flush=True)
     print()
