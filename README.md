@@ -1,3 +1,8 @@
+# IMPORTANT TEMPORARY CHANGE - OpenAI recently updated its API
+# For now, instead of using the command "pip3 install --upgrade openai"
+# in the instructions below, use the command
+# pip3 install openai==0.28
+
 # DaVinci_The_Artist
 DaVinci - The AI Artist ... He now talks with ChatGPT and generates images with DALL-E
 
