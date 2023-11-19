@@ -23,6 +23,7 @@ environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
 from colorama import Fore, Style
+from openai import OpenAI
 from PIL import Image,ImageDraw,ImageFont,ImageOps,ImageEnhance
 from pvleopard import *
 from pvrecorder import PvRecorder
@@ -33,7 +34,7 @@ import RPi.GPIO as GPIO
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 led1_pin=18
-led2_pin=23
+led2_pin=24
 GPIO.setup(led1_pin, GPIO.OUT)
 GPIO.output(led1_pin, GPIO.LOW)
 GPIO.setup(led2_pin, GPIO.OUT)
@@ -47,9 +48,11 @@ porcupine = None
 recorder = None
 wav_file = None
 
-GPT_model = "gpt-3.5-turbo" # most capable GPT-3.5 model and optimized for chat
+GPT_model = "gpt-4" # most capable GPT model and optimized for chat. You can substitute with gpt-3.5-turbo for lower cost and latency.
 openai.api_key = "put your secret API key between these quotation marks"
 pv_access_key= "put your secret access key between these quotation marks"
+
+client = OpenAI(api_key=openai.api_key)
 
 Clear_list = ["Clear the screen",
     "Clear the display",
@@ -94,34 +97,34 @@ prompt = ["How may I assist you?",
     "What would you like me to do?"]
 
 chat_log=[
-    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "system", "content": "Your name is DaVinci. You are a helpful assistant. If asked about yourself, you include your name in your response and include that you you are capable of generating art and displaying it in an art frame."},
     ]
 
 #DaVinci will 'remember' earlier queries so that it has greater continuity in its response
-#the following will delete that 'memory' five minutes after the start of the conversation
+#the following will delete that 'memory' three minutes after the start of the conversation
 def append_clear_countdown():
-    sleep(120)
+    sleep(180)
     global chat_log
     chat_log.clear()
     chat_log=[
-        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "system", "content": "Your name is DaVinci. You are a helpful assistant. If asked about yourself, you include your name in your response and include that you you are capable of generating art and displaying it in an art frame."},
         ]    
     global count
     count = 0
     t_count.join
 
 def ChatGPT(query):
-    user_query=[
+    user_query = [
         {"role": "user", "content": query},
-        ]
+        ]         
     send_query = (chat_log + user_query)
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
     model=GPT_model,
     messages=send_query
     )
-    answer = response.choices[0]['message']['content']
+    answer = response.choices[0].message.content
     chat_log.append({"role": "assistant", "content": answer})
-    return str.strip(response['choices'][0]['message']['content'])
+    return answer
 
 def clean_screen(transcript):
     
@@ -179,28 +182,34 @@ def detect_silence():
 
 def draw_request(transcript):
     
-    global Chat
-    
-    def dall_e2(prompt):
-        response = openai.Image.create(
+    global Chat    
+ 
+    def dall_e3(prompt):  
+        response = client.images.generate(
+            model="dall-e-3",
             prompt=prompt,
+            size="1024x1024",
+            quality="standard",
             n=1,
-            size="512x512" #can also be 256x256 or 1024x1024
         )
-        return (response['data'][0]['url'])
+        return (response.data[0].url)
    
     for word in Create_list:
         if word in transcript:
             print("\'"f"{word}\' detected")
             voice(f"I heard the phrase {word}.  I'll create the requested image and send it to your Art Frame for viewing.") 
-            prompt_full = (transcript.replace(word, "") + (" using vibrant colors"))                
+            prompt_full = (transcript.replace(word, "") + (" using vibrant colors"))
+#            prompt_full = (transcript.replace(word, "")) 
             print("You requested the following image: " + prompt_full)
             print("\nCreating image...\n")
-            image_url = dall_e2(prompt_full)
+            image_url = dall_e3(prompt_full)
 #            print(image_url) #uncomment this line if you want to print the generated image's URL
             auth = {'username':"DaVinci", 'password':"PlaceYourPasswordHere"}
             publish.single("AI-Art-Frame", image_url, hostname="PlaceYourArtFrameIPAddressHere")
-            print("Image URL sent to DALL-E 2 AI Art Frame for display")
+            print("Image URL sent to DALL-E 3 AI Art Frame for display")
+#            raw_data = urllib.request.urlopen(image_url).read()
+#            img = Image.open(io.BytesIO(raw_data))
+#            img.show() 
             Chat = 0
 
 def fade_leds(event):
@@ -261,7 +270,7 @@ def responseprinter(chat):
 def voice(chat):
    
     voiceResponse = polly.synthesize_speech(Text=chat, OutputFormat="mp3",
-                    VoiceId="Matthew") #other options include Amy, Joey, Nicole, Raveena and Russell
+                    VoiceId="Matthew", Engine="neural") #other options include Amy, Joey, Nicole, Raveena and Russell
     if "AudioStream" in voiceResponse:
         with voiceResponse["AudioStream"] as stream:
             output_file = "speech.mp3"
@@ -365,7 +374,7 @@ try:
     count = 0
 
     while True:
-
+        
         try:
         
             Chat = 1
@@ -391,11 +400,13 @@ try:
             clean_screen(transcript)
             if Chat == 1:        
                 (res) = ChatGPT(transcript)
-                print("\nChatGPT's response is:\n")        
+                print("\nDaVinci's response is:\n")        
                 t1 = threading.Thread(target=voice, args=(res,))
                 t2 = threading.Thread(target=responseprinter, args=(res,))
+
                 t1.start()
                 t2.start()
+
                 t1.join()
                 t2.join()
             event.set()
@@ -404,8 +415,8 @@ try:
             recorder.stop()
             o.delete
             recorder = None
-
-        except openai.error.APIError as e:
+            
+        except openai.APIError as e:
             print("\nThere was an API error.  Please try again in a few minutes.")
             voice("\nThere was an A P I error.  Please try again in a few minutes.")
             event.set()
@@ -416,18 +427,7 @@ try:
             recorder = None
             sleep(1)
 
-        except openai.error.Timeout as e:
-            print("\nYour request timed out.  Please try again in a few minutes.")
-            voice("\nYour request timed out.  Please try again in a few minutes.")
-            event.set()
-            GPIO.output(led1_pin, GPIO.LOW)
-            GPIO.output(led2_pin, GPIO.LOW)        
-            recorder.stop()
-            o.delete
-            recorder = None
-            sleep(1)
-
-        except openai.error.RateLimitError as e:
+        except openai.RateLimitError as e:
             print("\nYou have hit your assigned rate limit.")
             voice("\nYou have hit your assigned rate limit.")
             event.set()
@@ -438,7 +438,7 @@ try:
             recorder = None
             break
 
-        except openai.error.APIConnectionError as e:
+        except openai.APIConnectionError as e:
             print("\nI am having trouble connecting to the API.  Please check your network connection and then try again.")
             voice("\nI am having trouble connecting to the A P I.  Please check your network connection and try again.")
             event.set()
@@ -449,7 +449,7 @@ try:
             recorder = None
             sleep(1)
 
-        except openai.error.AuthenticationError as e:
+        except openai.AuthenticationError as e:
             print("\nYour OpenAI API key or token is invalid, expired, or revoked.  Please fix this issue and then restart my program.")
             voice("\nYour Open A I A P I key or token is invalid, expired, or revoked.  Please fix this issue and then restart my program.")
             event.set()
@@ -459,23 +459,9 @@ try:
             o.delete
             recorder = None
             break
-
-        except openai.error.ServiceUnavailableError as e:
-            print("\nThere is an issue with OpenAI’s servers.  Please try again later.")
-            voice("\nThere is an issue with Open A I’s servers.  Please try again later.")
-            event.set()
-            GPIO.output(led1_pin, GPIO.LOW)
-            GPIO.output(led2_pin, GPIO.LOW)        
-            recorder.stop()
-            o.delete
-            recorder = None
-            sleep(1)
-        
+   
 except KeyboardInterrupt:
     print("\nExiting ChatGPT Virtual Assistant")
     o.delete
     GPIO.cleanup()
-
-
-
-
+    
