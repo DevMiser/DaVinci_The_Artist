@@ -137,7 +137,7 @@ def clean_screen(transcript):
             current_time
             auth = {'username':"DaVinci", 'password':"PlaceYourPasswordHere"}
             publish.single("AI-Art-Frame", "Clean", hostname="PlaceYourArtFrameIPAddressHere")
-            print("\nErase screen request sent to DALL-E 2 AI Art Frame.  It will take several minutes to complete.")
+            print("\nErase screen request sent to DALL-E 3 AI Art Frame.  It will take several minutes to complete.")
             Chat = 0
             sleep(1)
 
