@@ -24,6 +24,7 @@ environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
 from colorama import Fore, Style
+from openia import OpenAI
 from PIL import Image,ImageDraw,ImageFont,ImageOps,ImageEnhance
 from pvleopard import *
 from pvrecorder import PvRecorder
@@ -51,6 +52,8 @@ wav_file = None
 GPT_model = "gpt-3.5-turbo" # most capable GPT-3.5 model and optimized for chat
 openai.api_key = "put your secret API key between these quotation marks"
 pv_access_key= "put your secret access key between these quotation marks"
+
+client = OpenAI(api_key=openai.api_key)
 
 Create_list = ["Draw",
     "Paint",
@@ -89,17 +92,17 @@ def append_clear_countdown():
     t_count.join
 
 def ChatGPT(query):
-    user_query=[
+    user_query = [
         {"role": "user", "content": query},
-        ]
+        ]         
     send_query = (chat_log + user_query)
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
     model=GPT_model,
     messages=send_query
     )
-    answer = response.choices[0]['message']['content']
+    answer = response.choices[0].message.content
     chat_log.append({"role": "assistant", "content": answer})
-    return str.strip(response['choices'][0]['message']['content'])
+    return answer
 
 def current_time():
 
@@ -143,15 +146,17 @@ def detect_silence():
 def draw_request(transcript):
     
     global Chat
-    
-    def dall_e2(prompt):
-        response = openai.Image.create(
+
+    def dall_e3(prompt):  
+        response = client.images.generate(
+            model="dall-e-3",
             prompt=prompt,
+            size="1024x1024",
+            quality="standard",
             n=1,
-            size="512x512" #can also be 256x256 or 1024x1024
         )
-        return (response['data'][0]['url'])
-   
+        return (response.data[0].url)
+    
     for word in Create_list:
         if word in transcript:
             print("\'"f"{word}\' detected")
@@ -159,7 +164,7 @@ def draw_request(transcript):
             prompt_full = (transcript.replace(word, ""))             
             print("You requested the following image: " + prompt_full)
             print("\nCreating image...\n")
-            image_url = dall_e2(prompt_full)
+            image_url = dall_e3(prompt_full)
             raw_data = urllib.request.urlopen(image_url).read()
             img = Image.open(io.BytesIO(raw_data))
             img.show()
