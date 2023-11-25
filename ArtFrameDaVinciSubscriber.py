@@ -165,10 +165,10 @@ class RefreshSchedule:
 try:
     
     client = mqtt.Client()
-    client.username_pw_set("DaVinci", "ImageExchange32")
+    client.username_pw_set("DaVinci", "PlaceYourPasswordHere")
     client.on_connect = on_connect
     client.on_message = on_message
-    client.connect("192.168.1.155", 1883, 60)
+    client.connect("PlaceYourArtFrameIPAddressHere", 1883, 60)
     client.loop_forever()
     
 except KeyboardInterrupt:
