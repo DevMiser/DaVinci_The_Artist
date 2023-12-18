@@ -2,6 +2,10 @@
 # DaVinci_The_Artist
 DaVinci - The AI Artist ... He now talks with ChatGPT and generates images with DALL-E
 
+Raspberry Pi’s newest OS (Bookworm) released on December 5, 2023, does not work well with this installation.
+For best results, use a Raspberry Pi 4 (not a Raspberry Pi 5) and use the legacy 64-bit OS.
+Instructions are in the Important - Please Read file on this repository.
+
 https://youtu.be/_LiKdh2x4ns
 
 <img width="492" alt="1" src="https://github.com/DevMiser/DaVinci_The_Artist/assets/22980908/eee93bf9-3ff3-4044-8479-40cd0a6e5acf">
